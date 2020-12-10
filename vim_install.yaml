@@ -1,0 +1,15 @@
+---
+- hosts: all
+  remote_user: root
+  gather_facts: false
+  become: true
+  tasks:
+  - name: ensure a list of packages installed
+    apt:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - iotop
+      - apache2
+      - vim

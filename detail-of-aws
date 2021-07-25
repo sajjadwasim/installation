@@ -1,0 +1,113 @@
+---
+- name: get the detail
+  hosts: all
+  ignore_unreachable: yes
+  serial: 1
+  become: true
+  become_user: root
+  vars:
+      ansible_user: admin
+      date: "{{ lookup('pipe','date +%Y-%m-%d_%H:%M:%S') }}"
+  tasks:
+
+    - name: "date"
+      command: "date"
+      register: date_output
+      ignore_errors: yes
+
+    - name: "TimezZone"
+      shell: "timedatectl | grep 'Time zone'"
+      register: timezone_output
+      ignore_errors: yes
+
+    - name: "applicationtime"
+      shell: "cat /opt/periscope/buyspeed/tomcat/bin/setenv.sh | grep timezone | awk '{print $11}'"
+      register: applicationtime_output
+      ignore_errors: yes
+
+
+  
+    - name: "uptime"
+      shell: "uptime | awk '{ print $3 }' "
+      register: uptime_output
+      ignore_errors: yes
+
+    - name: "IP address"
+      command: "hostname -I"
+      register: ipadress_output
+      ignore_errors: yes
+
+    - name: "Host Name"
+      command: "hostname"
+      register: hostname_output
+      ignore_errors: yes
+
+
+
+    - name: "Disk Space"
+      shell: "df -h | grep /dev/nvme0n1p1  | awk '{print $5}' "
+      register: diskspace_output
+      ignore_errors: yes
+
+    - name: "Disk Space Periscop"
+      shell: "df -h | grep vg_gp2-lv_periscope   | awk '{print $5}' "
+      register: diskspaceperiscope_output
+      ignore_errors: yes
+      
+    - name: "Heap memeory"
+      shell: "java -XX:+PrintFlagsFinal -version | grep -iE 'HeapSize|PermSize|ThreadStackSize'"
+      register: heapmemeory_output    
+      ignore_errors: yes
+
+    - name: "java Version"
+      shell: java -version 2>&1 | awk '/version/{print $NF}'
+      register: java_output
+      ignore_errors: yes
+     
+    - name: "system information"
+      shell: hostnamectl
+      register: systeminfo_output
+
+    - name: "copy the output to a local file"
+      lineinfile:
+        #content: "{{ ipadress_output.stdout }}"
+        dest: "/Users/SajjadWasim/Desktop/aaron/sajjad.txt" 
+        line: |
+          --------------------------------------------------------------------------------------------------------------
+          ****      Server Details of {{ hostname_output.stdout  }}                                                ****
+          --------------------------------------------------------------------------------------------------------------
+
+          Date = {{ date_output.stdout }}
+
+          Clock = {{ timezone_output.stdout }} 
+
+          Application TimeZone= {{ applicationtime_output.stdout }}
+
+          Server is up for days = {{ uptime_output.stdout }}
+          
+          Server Name =  {{ hostname_output.stdout }}
+
+          Server IP =  {{ ipadress_output.stdout }}
+          
+          Disk Space of nvme0n1p1 = {{ diskspace_output.stdout }}
+          
+          Heap Memeory(MB) = 
+          {{ heapmemeory_output.stdout }}
+          
+
+          Disk Space of opt/periscope = {{ diskspaceperiscope_output.stdout }}
+        
+          Java Version = {{ java_output.stdout }}
+          
+          System Summary = 
+          {{ systeminfo_output.stdout }}
+          --------------------------------------------------------------------------------------------------------------
+          ***    The END Of Details  {{ hostname_output.stdout  }}                                                   ***
+          --------------------------------------------------------------------------------------------------------------
+
+
+
+
+          --------------------------------------------------------------------------------------------------------------
+        insertafter: EOF
+      delegate_to: localhost   
